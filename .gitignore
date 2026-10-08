@@ -1,0 +1,2 @@
+app/database/snowflake_creds.py
+app/database/snowflake_decrypt.py

@@ -1,0 +1,22 @@
+{
+  "split_option": "3",
+  "split_type": "Month-Based Split",
+  "monitoring_mode": "fortnight",
+  "batch_mode": "rolling_6_week",
+  "baseline_prediction_path": "monitoring\\input\\development_prediction.csv",
+  "current_prediction_path": "monitoring\\input\\production_current_prediction.csv",
+  "baseline_start_date": "2025-12-01",
+  "baseline_end_date": "2026-06-01",
+  "current_start_date": "2026-06-01",
+  "current_end_date": "2026-08-04",
+  "batch_date_column": "OPENED_DATETIME",
+  "split_summary": {
+    "max_dataset_date": "2026-08-04",
+    "development_start_date": "2025-12-01",
+    "development_end_date": "2026-06-01",
+    "current_start_date": "2026-06-01",
+    "current_end_date": "2026-08-04",
+    "development_row_count": 50875,
+    "production_row_count": 20554
+  }
+}

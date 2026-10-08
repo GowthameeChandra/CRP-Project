@@ -1,0 +1,220 @@
+﻿{
+  "dataset": {
+    "dbconfig": {
+      "db_name": "XDS",
+      "table_name": "snow_change_failure_x",
+      "table_alias": "cf",
+      "joins": [
+        {
+          "type": "left",
+          "table": "snow_change_request_x",
+          "alias": "cr",
+          "on": "cf.change_request_number = cr.change_request_number",
+          "columns": ["opened_datetime"]
+        }
+      ],
+      "filters": "cf.change_failure_flag in ('Y','N') and cf.__sys_soft_deleted_flag='N' "
+    },
+    "date_column": "OPENED_DATETIME",
+    "production_split": {
+      "months": 3
+    },
+    "source_mds_column_mappings": {
+      "sys_id": "sys_id",
+      "end_date": "end_date",
+      "start_date": "start_date",
+      "type": "type"
+    },
+    "on_demand_temp_table_name": "change_request_on_demand",
+    "on_demand_sqls": {
+      "create_temp_table": "CREATE TEMPORARY TABLE TRUIST_XDSDB.change_request_on_demand AS (\nSELECT\n  sys_id, end_date, start_date, type\nFROM\n  MDSDB.change_request_final\nWHERE\n  0 = 1\n);",
+      "select_features": "SELECT\n    chg.sys_id as sys_id,\n    chg.type as change_type,\n    CASE \n        WHEN chg.end_date < chg.start_date \n        THEN -1 \n        ELSE coalesce(TIMESTAMPDIFF(SECOND,chg.start_date,chg.end_date), -1) \n    END as change_lead_duration\nFROM \n    TRUIST_XDSDB.change_request_on_demand chg;"
+    },
+    "business_id": "change_request_number",
+    "keys": [
+      "__sys_row_id"
+    ],
+    "features": [
+      {
+        "name": "change_lead_duration",
+        "type": "numeric"
+      },
+      {
+        "name": "change_type",
+        "type": "categorical"
+      },
+      {
+        "name": "change_conflict_status",
+        "type": "categorical"
+      },
+      {
+        "name": "change_planned_day_of_month",
+        "type": "numeric"
+      },
+      {
+        "name": "approved_planned_lead_time",
+        "type": "numeric"
+      },
+      {
+        "name": "change_affected_ci_count",
+        "type": "numeric"
+      },
+      {
+        "name": "created_requested_lead_time",
+        "type": "numeric"
+      },
+      {
+        "name": "all_ci_rfm",
+        "type": "numeric"
+      },
+      {
+        "name": "change_requested_by_prior_changes",
+        "type": "numeric"
+      },
+      {
+        "name": "change_planned_start_day_of_week",
+        "type": "categorical"
+      },
+      {
+        "name": "change_planned_start_hour_of_day",
+        "type": "numeric"
+      },
+      {
+        "name": "change_ci_prior_incident_count",
+        "type": "numeric"
+      },
+      {
+        "name": "change_assignment_group_prior_changes",
+        "type": "numeric"
+      },
+      {
+        "name": "change_impact",
+        "type": "categorical"
+      },
+      {
+        "name": "cmdb_supported_by_prior_failure_rate",
+        "type": "numeric"
+      },
+      {
+        "name": "assignee_days_since_first_closed_change",
+        "type": "numeric"
+      },
+      {
+        "name": "change_assignment_group_prior_changes_failure_rate",
+        "type": "numeric"
+      },
+      {
+        "name": "cmdb_supported_by_prior_changes",
+        "type": "numeric"
+      },
+      {
+        "name": "change_failure_flag",
+        "type": "categorical"
+      }
+    ]
+  },
+  "model": {
+    "estimator": "catboost",
+    "target": "change_failure_flag",
+    "pos_class_label": "Y",
+    "neg_class_label": "N",
+    "cv": 3,
+    "gridsearch": false,
+    "optuna": false,
+    "data_split": {
+      "test_size": 0.2,
+      "shuffle": true,
+      "strategy": {
+        "type": "stratify",
+        "column": "change_failure_flag"
+      }
+    },
+    "hyperparams": {
+      "catboost": {
+        "scoring_eval_metrics": [
+          "average_precision",
+          "precision",
+          "recall",
+          "f1"
+        ],
+        "gridsearch": {
+          "learning_rate": [0.03, 0.05, 0.1],
+          "depth": [4, 6, 8, 9, 10],
+          "l2_leaf_reg": [5, 7, 9],
+          "random_strength": [1, 2, 3, 5 ],
+          "iterations": [100, 300, 500, 800, 1000],
+          "loss_function": ["Logloss"],
+          "random_seed": [42],
+          "bagging_temperature":[0.1]
+        },
+        "optuna": {
+           "learning_rate": [0.01, 0.25],
+           "depth": [4, 10],
+           "iterations": [100, 1600],
+           "l2_leaf_reg": [0.25, 15],
+           "random_strength": [0, 5],
+           "bagging_temperature": [0, 2],
+           "positive_class_weight": [1, 15],
+           "loss_function": ["Logloss"],
+           "random_seed": [42]
+        },
+        "default": {
+          "task_type": "CPU",
+          "iterations": 100,
+          "loss_function": "Logloss",
+          "eval_metric": "PRAUC",
+          "random_seed": 42,
+          "od_type": "Iter",
+          "od_wait": 10,
+          "custom_metric": [
+            "AUC:hints=skip_train~false",
+            "PRAUC",
+            "Precision",
+            "Recall",
+            "F1"
+          ]
+        }    
+      }
+    },
+    "binning_params": {
+      "Low": [
+        0,
+        0.05
+      ],
+      "Medium": [
+        0.05,
+        0.25
+      ],
+      "Medium-High": [
+        0.25,
+        0.5
+      ],
+      "High": [
+        0.5,
+        1
+      ]
+    }
+  },
+  "training": {
+    "optuna_config": {
+      "n_trials": 30,
+      "optuna_timeout": null,
+      "optuna_seed": 42
+    }
+  },
+  "monitoring": {
+    "input_dir": "monitoring/input",
+    "output_dir": "monitoring/output",
+    "reference_prediction_file": "development_prediction.csv",
+    "current_prediction_file": "production_current_prediction.csv",
+    "report_html_file": "evidently_report.html",
+    "report_json_file": "evidently_report.json"
+  },
+  "feature_count": {
+    "total_entries": 19,
+    "predictor_features": 18,
+    "target_features": 1
+  }
+}
+ 
+ 

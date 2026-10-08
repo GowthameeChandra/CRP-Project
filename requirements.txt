@@ -1,0 +1,12 @@
+catboost
+snowflake-snowpark-python
+snowflake-connector-python[pandas]
+pyarrow
+pandas
+numpy
+scikit-learn
+cryptography
+optuna
+plotly
+evidently==0.7.21
+openpyxl
